@@ -16,10 +16,11 @@ use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent
 const store = useCanBusStore();
 const chartRef = ref<InstanceType<typeof VChart> | null>(null);
 
+const colors = ['#06b6d4', '#22c55e', '#ef4444', '#eab308', '#a855f7'];
+
 const chartOption = computed(() => {
   const signalEntries = Array.from(store.signals.entries());
 
-  const colors = ['#06b6d4', '#22c55e', '#ef4444', '#eab308', '#a855f7'];
   const series = signalEntries.map(([name, sig], idx) => ({
     name,
     type: 'line' as const,
@@ -84,6 +85,21 @@ const chartOption = computed(() => {
     series
   };
 });
+
+const signalStatsList = computed(() => {
+  const signalEntries = Array.from(store.signals.entries());
+  return signalEntries.map(([name], idx) => {
+    const stats = store.signalStats.get(name);
+    return {
+      name,
+      color: colors[idx % colors.length],
+      min: stats?.min ?? 0,
+      max: stats?.max ?? 0,
+      avg: stats?.avg ?? 0,
+      count: stats?.count ?? 0
+    };
+  });
+});
 </script>
 
 <template>
@@ -94,7 +110,41 @@ const chartOption = computed(() => {
         {{ store.signals.size }} 个信号活跃
       </span>
     </div>
-    <div class="flex-1 p-2">
+
+    <div v-if="signalStatsList.length > 0" class="px-4 py-3 bg-gray-800 border-b border-gray-700">
+      <div class="text-xs text-gray-400 mb-2">信号摘要</div>
+      <div class="grid grid-cols-1 gap-2">
+        <div
+          v-for="sig in signalStatsList"
+          :key="sig.name"
+          class="flex items-center justify-between text-xs"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <span
+              class="w-2 h-2 rounded-full shrink-0"
+              :style="{ backgroundColor: sig.color }"
+            ></span>
+            <span class="text-gray-300 truncate">{{ sig.name }}</span>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="text-right">
+              <span class="text-gray-500">最小</span>
+              <span class="text-cyan-400 font-mono ml-1">{{ sig.min.toFixed(1) }}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-gray-500">最大</span>
+              <span class="text-green-400 font-mono ml-1">{{ sig.max.toFixed(1) }}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-gray-500">平均</span>
+              <span class="text-yellow-400 font-mono ml-1">{{ sig.avg.toFixed(1) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 p-2 relative">
       <VChart
         ref="chartRef"
         :option="chartOption"

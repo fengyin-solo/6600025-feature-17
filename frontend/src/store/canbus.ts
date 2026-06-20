@@ -52,6 +52,28 @@ export const useCanBusStore = defineStore('canbus', () => {
     return busStats.value.busLoad.toFixed(1);
   });
 
+  const signalStats = computed(() => {
+    const stats = new Map<string, { min: number; max: number; avg: number; count: number }>();
+    for (const [name, sig] of signals.value.entries()) {
+      if (sig.data.length === 0) continue;
+      let min = Infinity;
+      let max = -Infinity;
+      let sum = 0;
+      for (const d of sig.data) {
+        if (d.value < min) min = d.value;
+        if (d.value > max) max = d.value;
+        sum += d.value;
+      }
+      stats.set(name, {
+        min,
+        max,
+        avg: sum / sig.data.length,
+        count: sig.data.length
+      });
+    }
+    return stats;
+  });
+
   function addFrame(frame: CanFrame) {
     frames.value.push(frame);
     if (frames.value.length > 500) {
@@ -206,6 +228,7 @@ export const useCanBusStore = defineStore('canbus', () => {
     isCapturing,
     filteredFrames,
     busLoadPercent,
+    signalStats,
     addFrame,
     clearFrames,
     loadMockDbc,
